@@ -1,17 +1,30 @@
 
-const fs = require("fs/promises")
+//const fs = require("fs/promises")
+const fs = require('fs')
+const { promises: fsPromise } = fs
 const path = require("path")
 const shortid = require('shortid')
-const contactsPath = path.join(__dirname, "db/contacts.json")
+//const contactsPath = path.join(__dirname, "db/contacts.json")
+const chalk=require('chalk')
+const contactsPath = path.join(__dirname, 'db', 'contacts.json')
+
 
 async function listContacts() {
   try {
-    const data = await fs.readFile(contactsPath)
-    console.table(JSON.parse(data))
+    const contacts = await fsPromise.readFile(contactsPath, 'utf-8');
+		return JSON.parse(contacts)
   } catch (err) {
-    console.log(err.message)
+    errHandle(err)
   }
 }
+// async function listContacts() {
+//   try {
+//     const data = await fs.readFile(contactsPath)
+//     console.table(JSON.parse(data))
+//   } catch (err) {
+//     console.log(err.message)
+//   }
+// }
 // function listContacts() {
 //     fs.readFile(contactsPath, (err, data) => {
 //       if (err) {
@@ -23,17 +36,24 @@ async function listContacts() {
 
 async function getContactById(contactId) {
   try {
-    const data = await fs.readFile(contactsPath)
-    const allContacts = JSON.parse(data)
-    const foundContact = allContacts.find(
-      (contact) => contact.id === Number(contactId)
-    )
-    console.table(foundContact ? foundContact : 'Contact undefined')
+    const contacts = await listContacts()
+		return contacts.find(({id})=>id == contactId )
   } catch (err) {
-    console.log(err.message)
+    errHandle(err)
   }
 }
-
+// async function getContactById(contactId) {
+//   try {
+//     const data = await fs.readFile(contactsPath)
+//     const allContacts = JSON.parse(data)
+//     const foundContact = allContacts.find(
+//       (contact) => contact.id === Number(contactId)
+//     )
+//     console.table(foundContact ? foundContact : 'Contact undefined')
+//   } catch (err) {
+//     console.log(err.message)
+//   }
+// }
 // function getContactById(contactId) {
 //     fs.readFile(contactsPath, (err, data) => {
 //       if (err) {
@@ -51,22 +71,33 @@ async function getContactById(contactId) {
 
 async function addContact(name, email, phone) {
   try {
-    const data = await fs.readFile(contactsPath)
-    const allContacts = JSON.parse(data)
-    const user = {
-      id: shortid.generate(),
-      name,
-      email,
-      phone,
-    }
-
-    allContacts.push(user)
-    await fs.writeFile(contactsPath, JSON.stringify(allContacts))
-    console.log(`Contact ${name} added`)
+    const contacts = await listContacts()
+    const id = shortid.generate()
+		const newContact = { id, name, email, phone }
+		const newList = [...contacts, newContact]
+		await fsPromise.writeFile(contactsPath, JSON.stringify(newList))
   } catch (err) {
-    console.log(err.message)
+    errHandle(err)
   }
 }
+// async function addContact(name, email, phone) {
+//   try {
+//     const data = await fs.readFile(contactsPath)
+//     const allContacts = JSON.parse(data)
+//     const user = {
+//       id: shortid.generate(),
+//       name,
+//       email,
+//       phone,
+//     }
+
+//     allContacts.push(user)
+//     await fs.writeFile(contactsPath, JSON.stringify(allContacts))
+//     console.log(`Contact ${name} added`)
+//   } catch (err) {
+//     console.log(err.message)
+//   }
+// }
 //function addContact(name, email, phone) {
   //   fs.readFile(contactsPath, (err, data) => {
   //     if (err) {
@@ -98,22 +129,33 @@ async function addContact(name, email, phone) {
   // }
 async function removeContact(contactId) {
   try {
-    const data = await fs.readFile(contactsPath)
-    const allContacts = JSON.parse(data)
-    const newContacts = allContacts.filter(
-      (contact) => !(contact.id === Number(contactId))
-    )
-
-    if (allContacts.length === newContacts.length) {
-      console.log('Contact undefined')
-    } else {
-      await fs.writeFile(contactsPath, JSON.stringify(newContacts))
-      console.log('Contact deleted')
-    }
+    const contacts = await listContacts()
+    const newContacts = contacts.filter(
+      ({id}) => id !== contactId)
+    
+    await fsPromise.writeFile(contactsPath, JSON.stringify(newContacts));
   } catch (err) {
-    console.log(err.message)
+    errHandle(err)
   }
 }
+// async function removeContact(contactId) {
+//   try {
+//     const data = await fs.readFile(contactsPath)
+//     const allContacts = JSON.parse(data)
+//     const newContacts = allContacts.filter(
+//       (contact) => !(contact.id === Number(contactId))
+//     )
+
+//     if (allContacts.length === newContacts.length) {
+//       console.log('Contact undefined')
+//     } else {
+//       await fs.writeFile(contactsPath, JSON.stringify(newContacts))
+//       console.log('Contact deleted')
+//     }
+//   } catch (err) {
+//     console.log(err.message)
+//   }
+// }
 // function removeContact(contactId) {
 //   fs.readFile(contactsPath, (err, data) => {
 //     if (err) {
@@ -129,5 +171,10 @@ async function removeContact(contactId) {
 //     listContacts()
 //   })
 // }
+
+function errHandle(err) {
+	console.log(chalk.red(err));
+	process.exit(1);
+}
 
 module.exports = { listContacts, getContactById, removeContact, addContact }

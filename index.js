@@ -1,6 +1,7 @@
 const { listContacts, getContactById, removeContact, addContact } = require('./contacts.js')
 const { Command } = require('commander')
 const program = new Command()
+const chalk = require('chalk')
 
 program
   .option('-a, --action <type>', 'choose action')
@@ -13,22 +14,30 @@ program.parse(process.argv)
 
 const argv = program.opts()
 
-function invokeAction({ action, id, name, email, phone }) {
+async function invokeAction({ action, id, name, email, phone }) {
   switch (action) {
     case 'list':
-      listContacts()
+      const list= await listContacts()
+      console.log(chalk.green('Get contact list'))
+			console.table(list)
       break
 
     case 'get':
-      getContactById(id)
+      const contact= await getContactById(id)
+      console.log(chalk.green('Get contact by ID'))
+			console.table(contact)
       break
 
     case 'add':
-      addContact(name, email, phone)
+      const newContact= await addContact(name, email, phone)
+      console.log(chalk.green('Add contact'))
+			console.table(newContact)
       break
 
     case 'remove':
+      await
       removeContact(id)
+      console.log(chalk.green(`Remove contact with ID ${id}`));
       break
 
     default:
