@@ -1,6 +1,3 @@
-// const app = require('../app')
-// const db = require('../model/db')
-
 const app = require('../app')
 const db = require('../model/db')
 
