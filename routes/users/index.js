@@ -2,6 +2,7 @@ const express = require('express')
 const router = express.Router()
 const cntrl = require('../../controllers/users')
 const guard = require('../../helper/guard')
+const uploadAvatar = require('../../helper/upload-avatar')
 //const rateLimit = require('express-rate-limit')
 const {
   validationUserData
@@ -10,7 +11,12 @@ const {
 router.post('/signup',validationUserData, cntrl.reg)
 router.post('/login',validationUserData, cntrl.login)
 router.post('/logout', guard, cntrl.logout)
-
+router.patch(
+  '/avatars',
+  guard,
+  uploadAvatar.single('avatar'),
+  cntrl.updateAvatar,
+)
 router.get('/current', guard, cntrl.current)
 
 module.exports = router
