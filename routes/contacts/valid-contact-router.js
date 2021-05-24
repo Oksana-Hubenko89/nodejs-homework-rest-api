@@ -31,7 +31,7 @@ const validate = async (schema, obj, next) => {
     await schema.validateAsync(obj)
     return next()
   } catch (err) {
-    console.log(err)
+    //console.log(err)
     
     if (err.name === 'ValidationError' && err.message.includes('phone with value')) {
       next({ status: 400, message: 'phone number must match the pattern (xxx) xxx-xxxx' })
