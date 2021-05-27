@@ -1,4 +1,4 @@
-## GoIT Node.js Course Template Homework
+## nodejs-homework-rest-api
 
 =============================================
 
