@@ -2,12 +2,14 @@ const jwt = require('jsonwebtoken')
 const jimp = require('jimp')
 const fs = require('fs/promises')
 const path = require('path')
-const cloudinary = require('cloudinary').v2
-//const { promisify } = require('util')
-const Users = require('../model/users')
-const { HttpCode } = require('../helper/constants')
+// const cloudinary = require('cloudinary').v2
+// const { promisify } = require('util')
 
 require('dotenv').config()
+
+const Users = require('../model/users')
+const EmailService = require('../services/email')
+const { HttpCode } = require('../helper/constants')
 
 const JWT_SECRET_KEY = process.env.JWT_SECRET_KEY
 
@@ -17,11 +19,10 @@ const JWT_SECRET_KEY = process.env.JWT_SECRET_KEY
 //   api_key: process.env.API_KEY_CLOUD,
 //   api_secret: process.env.API_SECRET_CLOUD,
 // })
-// const uploadToCloud = promisify(cloudinary.uploader.upload)
+//const uploadToCloud = promisify(cloudinary.uploader.upload)
 
 const reg = async (req, res, next) => {
-  const { email } = req.body
-  const user = await Users.findByEmail(email)
+  const user = await Users.findByEmail(req.body.email)
   if (user) {
     return res.status(HttpCode.CONFLICT).json({
       status: 'error',
@@ -31,14 +32,26 @@ const reg = async (req, res, next) => {
   }
   try {
     const newUser = await Users.create(req.body)
+    const {id, name, email, subscription, avatar, verifyToken} = newUser
+    try{
+      const emailService=new EmailService (process.env.NODE_ENV)
+      await emailService.sendVerifyEmail(verifyToken, email, name)
+
+    }catch(e){
+      //logger
+      console.log(e.message)
+    }
     return res.status(HttpCode.CREATED).json({
       status: 'success',
       code: HttpCode.CREATED,
       data: {
         user:{
-         // id: newUser.userId,
-          email: newUser.email,
-          subscription: newUser.subscription,
+          id,
+          name,
+          email,
+          subscription,
+          avatar,
+          verifyToken
         }
       },
     })
@@ -52,11 +65,18 @@ const login = async (req, res, next) => {
   const user = await Users.findByEmail(email)
   const isValidPassword = await user?.validPassword(password)
 
-  if (!user || !isValidPassword) {
+  if (!user || !isValidPassword ) {
     return res.status(HttpCode.UNAUTHORIZED).json({
       status: 'error',
       code: HttpCode.UNAUTHORIZED,
-      message: 'Email or password is wrong',
+      message: 'Email or password is wrong.',
+    })
+  }
+  if (!user.verify) {
+    return res.status(HttpCode.UNAUTHORIZED).json({
+        status: 'error',
+        code: HttpCode.UNAUTHORIZED,
+        message: 'The user is not verificated',
     })
   }
   const payload = { id: user.id }
@@ -157,12 +177,55 @@ const saveAvatarUser = async (req) => {
 //   await fs.unlink(pathFile)
 //   return { idCloudAvatar, avatarUrl }
 // }
+const verify = async (req, res, next) => {
+  try {
+    const user = await Users.findByVerifyTokenEmail(req.params.verificationToken)
+    if (user) {
+      await Users.updateVerifyToken(user.id, true, null)
+      return res.status(HttpCode.OK).json({
+        status: 'success',
+        code: HttpCode.OK,
+        data: { message: 'Verification successful' },
+      })
+    }
+    return res.status(HttpCode.BAD_REQUEST).json({
+      status: 'error',
+      code: HttpCode.BAD_REQUEST,
+      message: 'Invalid token. Contact to administration',
+    })
+  } catch (error) {
+    next(error)
+  }
+}
 
-
+const repeatEmailVerify = async (req, res, next) => {
+  try {
+    const user = await Users.findByEmail(req.body.email)
+    if (user) {
+      const { name, verifyToken, email } = user
+      const emailService = new EmailService(process.env.NODE_ENV)
+      await emailService.sendVerifyEmail(verifyToken, email, name)
+      return res.status(HttpCode.OK).json({
+        status: 'success',
+        code: HttpCode.OK,
+        data: { message: 'Verification email resubmitted' },
+      })
+    }
+    return res.status(HttpCode.NOT_FOUND).json({
+      status: 'error',
+      code: HttpCode.NOT_FOUND,
+      message: 'User not found',
+    })
+  } catch (error) {
+    next(error)
+  }
+}
 module.exports = {
   reg,
   login,
   logout,
   current,
-  updateAvatar
+  updateAvatar,
+  verify,
+  repeatEmailVerify
 }

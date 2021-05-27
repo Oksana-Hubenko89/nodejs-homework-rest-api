@@ -1,7 +1,10 @@
 const mongoose = require('mongoose')
 const { Schema, model } = mongoose
+const gravatar = require('gravatar')
 const bcrypt = require('bcryptjs')
+const {nanoid} = require('nanoid')
 const {Subscription}=require('../../helper/constants')
+
 const SALT_FACTOR = 6
 
 const userSchema = new Schema(
@@ -18,6 +21,10 @@ const userSchema = new Schema(
           type: String,
           required: [true, 'Email is required'],
           unique: true,
+          // validate(value){
+          //   const re= /\S+@\S+\.S+/
+          //   return re.test(String(value).toLowerCase())
+          // },
         },
         subscription: {
           type: String,
@@ -38,6 +45,15 @@ const userSchema = new Schema(
           type: String,
           default: null,
         },
+        verify: {
+          type: Boolean,
+          default: false,
+          },
+        verifyToken: {
+          type: String,
+          required: [true, 'Verify token is required'],
+          default:nanoid(),
+        }
       },
       {
         versionKey: false,
